@@ -5,4 +5,8 @@ public class CryptoNotFoundException extends RuntimeException {
     public CryptoNotFoundException(Long id) {
         super("Crypto introuvable avec l'id : " + id);
     }
+
+    public CryptoNotFoundException(String message) {
+        super(message);
+    }
 }

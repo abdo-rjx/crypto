@@ -4,6 +4,6 @@ CREATE TABLE CRYPTO (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
     symbole VARCHAR(10) NOT NULL,
-    quantiteDetenue DOUBLE NOT NULL,
+    quantite_detenue DOUBLE NOT NULL,
     cle_privee VARCHAR(255)
 );
