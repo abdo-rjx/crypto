@@ -1,0 +1,32 @@
+package com.example.crypto.web.controller;
+
+import com.example.crypto.dao.CryptoRepository;
+import com.example.crypto.model.Crypto;
+import com.example.crypto.web.exceptions.CryptoNotFoundException;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/cryptos")
+public class CryptoController {
+
+    private final CryptoRepository cryptoRepository;
+
+    public CryptoController(CryptoRepository cryptoRepository) {
+        this.cryptoRepository = cryptoRepository;
+    }
+
+
+    @GetMapping
+    public List<Crypto> getAll() {
+        return cryptoRepository.findAll();
+    }
+
+
+    @GetMapping("/{id}")
+    public Crypto getById(@PathVariable Long id) {
+        return cryptoRepository.findById(id)
+                .orElseThrow(() -> new CryptoNotFoundException(id));
+    }
+}
