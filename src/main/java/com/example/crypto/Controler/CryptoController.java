@@ -13,8 +13,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/cryptos")
+@Tag(name = "Cryptos", description = "Gestion du portefeuille de cryptomonnaies")
 public class CryptoController {
 
     private final CryptoRepository cryptoRepository;
@@ -27,30 +34,47 @@ public class CryptoController {
     //  CRUD DE BASE
     // ─────────────────────────────────────────────
 
-    /** GET /cryptos — Liste toutes les cryptos */
+    @Operation(summary = "Liste toutes les cryptos", description = "Retourne la liste complète du portefeuille")
+    @ApiResponse(responseCode = "200", description = "Liste récupérée avec succès")
     @GetMapping
     public List<Crypto> listerCryptos() {
         return cryptoRepository.findAll();
     }
 
-    /** GET /cryptos/{id} — Récupère une crypto par ID */
+    @Operation(summary = "Récupère une crypto par ID")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Crypto trouvée"),
+        @ApiResponse(responseCode = "404", description = "Crypto introuvable")
+    })
     @GetMapping("/{id}")
-    public Crypto recupererUneCrypto(@PathVariable Long id) {
+    public Crypto recupererUneCrypto(
+            @Parameter(description = "ID de la crypto", required = true) @PathVariable Long id) {
         return cryptoRepository.findById(id)
                 .orElseThrow(() -> new CryptoNotFoundException(
                         "La crypto avec l'id " + id + " n'existe pas."));
     }
 
-    /** POST /cryptos — Ajoute une nouvelle crypto, retourne 201 Created */
+    @Operation(summary = "Ajoute une nouvelle crypto", description = "Crée une crypto et retourne 201 Created")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Crypto créée"),
+        @ApiResponse(responseCode = "400", description = "Données invalides")
+    })
     @PostMapping
     public ResponseEntity<Crypto> ajouterCrypto(@Valid @RequestBody Crypto crypto) {
         Crypto cryptoAjoute = cryptoRepository.save(crypto);
         return ResponseEntity.status(HttpStatus.CREATED).body(cryptoAjoute);
     }
 
-    /** PUT /cryptos/{id} — Mise à jour complète d'une crypto existante */
+    @Operation(summary = "Mise à jour complète d'une crypto existante")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Crypto mise à jour"),
+        @ApiResponse(responseCode = "404", description = "Crypto introuvable"),
+        @ApiResponse(responseCode = "400", description = "Données invalides")
+    })
     @PutMapping("/{id}")
-    public Crypto mettreAJourCrypto(@PathVariable Long id, @Valid @RequestBody Crypto crypto) {
+    public Crypto mettreAJourCrypto(
+            @Parameter(description = "ID de la crypto", required = true) @PathVariable Long id,
+            @Valid @RequestBody Crypto crypto) {
         if (!cryptoRepository.existsById(id)) {
             throw new CryptoNotFoundException("La crypto avec l'id " + id + " n'existe pas.");
         }
@@ -58,10 +82,15 @@ public class CryptoController {
         return cryptoRepository.save(crypto);
     }
 
-    /** PATCH /cryptos/{id}/quantite — Mise à jour partielle de la quantité */
+    @Operation(summary = "Mise à jour partielle de la quantité")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Quantité mise à jour"),
+        @ApiResponse(responseCode = "404", description = "Crypto introuvable")
+    })
     @PatchMapping("/{id}/quantite")
-    public Crypto mettreAJourQuantite(@PathVariable Long id,
-                                      @RequestParam Double quantite) {
+    public Crypto mettreAJourQuantite(
+            @Parameter(description = "ID de la crypto", required = true) @PathVariable Long id,
+            @Parameter(description = "Nouvelle quantité détenue", required = true) @RequestParam Double quantite) {
         Crypto crypto = cryptoRepository.findById(id)
                 .orElseThrow(() -> new CryptoNotFoundException(
                         "La crypto avec l'id " + id + " n'existe pas."));
@@ -69,9 +98,14 @@ public class CryptoController {
         return cryptoRepository.save(crypto);
     }
 
-    /** DELETE /cryptos/{id} — Supprime une crypto par ID */
+    @Operation(summary = "Supprime une crypto par ID")
+    @ApiResponses({
+        @ApiResponse(responseCode = "204", description = "Crypto supprimée"),
+        @ApiResponse(responseCode = "404", description = "Crypto introuvable")
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> supprimerCrypto(@PathVariable Long id) {
+    public ResponseEntity<Void> supprimerCrypto(
+            @Parameter(description = "ID de la crypto", required = true) @PathVariable Long id) {
         if (!cryptoRepository.existsById(id)) {
             throw new CryptoNotFoundException("La crypto avec l'id " + id + " n'existe pas.");
         }
@@ -83,31 +117,40 @@ public class CryptoController {
     //  RECHERCHE & FILTRAGE
     // ─────────────────────────────────────────────
 
-    /** GET /cryptos/symbole/{symbole} — Cherche une crypto par son symbole (ex: BTC) */
+    @Operation(summary = "Cherche une crypto par symbole", description = "Ex : BTC, ETH")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Crypto trouvée"),
+        @ApiResponse(responseCode = "404", description = "Symbole introuvable")
+    })
     @GetMapping("/symbole/{symbole}")
-    public Crypto recupererParSymbole(@PathVariable String symbole) {
+    public Crypto recupererParSymbole(
+            @Parameter(description = "Symbole de la crypto (ex: BTC)", required = true) @PathVariable String symbole) {
         return cryptoRepository.findBySymbole(symbole.toUpperCase())
                 .orElseThrow(() -> new CryptoNotFoundException(
                         "Aucune crypto trouvée avec le symbole : " + symbole));
     }
 
-    /** GET /cryptos/search?nom=bitcoin — Recherche partielle par nom */
+    @Operation(summary = "Recherche partielle par nom", description = "Ex : ?nom=bitcoin")
+    @ApiResponse(responseCode = "200", description = "Résultats de recherche")
     @GetMapping("/search")
-    public List<Crypto> rechercherParNom(@RequestParam String nom) {
+    public List<Crypto> rechercherParNom(
+            @Parameter(description = "Nom ou partie du nom", required = true) @RequestParam String nom) {
         return cryptoRepository.findByNomContainingIgnoreCase(nom);
     }
 
-    /** GET /cryptos/faible-stock?seuil=10 — Cryptos avec quantité < seuil */
+    @Operation(summary = "Cryptos avec quantité inférieure au seuil")
+    @ApiResponse(responseCode = "200", description = "Liste des cryptos en faible stock")
     @GetMapping("/faible-stock")
     public List<Crypto> cryptosFaibleStock(
-            @RequestParam(defaultValue = "10.0") Double seuil) {
+            @Parameter(description = "Seuil de quantité (défaut: 10.0)") @RequestParam(defaultValue = "10.0") Double seuil) {
         return cryptoRepository.findByQuantiteDetenueLessThan(seuil);
     }
 
-    /** GET /cryptos/stock-eleve?seuil=100 — Cryptos avec quantité >= seuil */
+    @Operation(summary = "Cryptos avec quantité supérieure ou égale au seuil")
+    @ApiResponse(responseCode = "200", description = "Liste des cryptos en stock élevé")
     @GetMapping("/stock-eleve")
     public List<Crypto> cryptosStockEleve(
-            @RequestParam(defaultValue = "100.0") Double seuil) {
+            @Parameter(description = "Seuil de quantité (défaut: 100.0)") @RequestParam(defaultValue = "100.0") Double seuil) {
         return cryptoRepository.findByQuantiteDetenueGreaterThanEqual(seuil);
     }
 
@@ -115,17 +158,19 @@ public class CryptoController {
     //  TRI
     // ─────────────────────────────────────────────
 
-    /** GET /cryptos/tri?ordre=asc|desc — Liste triée par quantité */
+    @Operation(summary = "Liste triée par quantité", description = "Utilisez ?ordre=asc ou ?ordre=desc")
+    @ApiResponse(responseCode = "200", description = "Liste triée")
     @GetMapping("/tri")
     public List<Crypto> listerAvecTri(
-            @RequestParam(defaultValue = "desc") String ordre) {
+            @Parameter(description = "Ordre de tri : asc ou desc (défaut: desc)") @RequestParam(defaultValue = "desc") String ordre) {
         if ("asc".equalsIgnoreCase(ordre)) {
             return cryptoRepository.findAllByOrderByQuantiteDetenueAsc();
         }
         return cryptoRepository.findAllByOrderByQuantiteDetenueDesc();
     }
 
-    /** GET /cryptos/top5 — Top 5 des cryptos les plus détenues */
+    @Operation(summary = "Top 5 des cryptos les plus détenues")
+    @ApiResponse(responseCode = "200", description = "Top 5 retourné")
     @GetMapping("/top5")
     public List<Crypto> top5CryptosParQuantite() {
         return cryptoRepository.findTop5ByOrderByQuantiteDetenueDesc();
@@ -135,7 +180,9 @@ public class CryptoController {
     //  STATISTIQUES
     // ─────────────────────────────────────────────
 
-    /** GET /cryptos/stats — Statistiques globales du portefeuille */
+    @Operation(summary = "Statistiques globales du portefeuille",
+               description = "Retourne le nombre total, la quantité totale, la moyenne, et les extrêmes")
+    @ApiResponse(responseCode = "200", description = "Statistiques calculées")
     @GetMapping("/stats")
     public Map<String, Object> statistiques() {
         List<Crypto> all = cryptoRepository.findAll();
